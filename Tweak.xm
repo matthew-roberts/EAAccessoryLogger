@@ -21,11 +21,17 @@
 %hook EAInputStream
 - (NSInteger)read:(uint8_t *)buffer maxLength:(NSUInteger)len{
     NSInteger result = %orig;
-    NSString * data = @"";
+    NSString * hexData = @"";
     if (result > 0){
-        data = [NSString stringForData:buffer withSize:result];
+        hexData = [NSString stringForData:buffer withSize:result];
     }
-    NSLog(@"EAAccessoryLogger: READ(%p,%u) = %d, data: %@", buffer, len, result, data);
+    NSMutableString * asciiData = [[NSMutableString alloc] init];
+    NSScanner *scanner = [[NSScanner alloc] initWithString:hexData];
+    unsigned value;
+    while([scanner scanHexInt:&value]) {
+        [asciiData appendFormat:@"%c",(char)(value & 0xFF)];
+    }
+    NSLog(@"EAAccessoryLogger: READ(%p,%u) = %d, data: %@", buffer, len, result, asciiData);
     return result;
 }
 %end
@@ -33,8 +39,14 @@
 %hook EAOutputStream
 - (NSInteger)write:(const uint8_t *)buffer maxLength:(NSUInteger)len{
     NSInteger result = %orig;
-    NSString * data = [NSString stringForData:buffer withSize:len];
-    NSLog(@"EAAccessoryLogger: WRITE(%p,%u) = %d, data: %@", buffer, len, result, data);
+    NSString * hexData = [NSString stringForData:buffer withSize:len];
+    NSMutableString * asciiData = [[NSMutableString alloc] init];
+    NSScanner *scanner = [[NSScanner alloc] initWithString:hexData];
+    unsigned value;
+    while([scanner scanHexInt:&value]) {
+        [asciiData appendFormat:@"%c",(char)(value & 0xFF)];
+    }
+    NSLog(@"EAAccessoryLogger: WRITE(%p,%u) = %d, data: %@", buffer, len, result, asciiData);
     return result;
 }
 %end
